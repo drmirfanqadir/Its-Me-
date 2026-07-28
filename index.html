@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>It's Me - Smart World Order</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="It's Me">
+    
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Poppins', 'Noto Nastaliq Urdu', sans-serif;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 25%, #e6eef7 50%, #f8f9fa 75%, #ffffff 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #1a202c;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        .sparkle {
+            position: relative;
+            overflow: hidden;
+        }
+        .sparkle::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+            animation: sparkleAnim 4s infinite linear;
+            pointer-events: none;
+        }
+        @keyframes sparkleAnim {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nav-item.active {
+            color: #2563eb;
+            border-top: 3px solid #2563eb;
+        }
+
+        .hidden-section { display: none !important; }
+        
+        .chat-bubble-sent {
+            background: linear-gradient(135deg, #dcf8c6 0%, #c8e6c9 100%);
+            border-radius: 15px 15px 0 15px;
+            padding: 10px 15px;
+            margin: 5px 0;
+            max-width: 80%;
+            align-self: flex-end;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .chat-bubble-received {
+            background: #ffffff;
+            border-radius: 15px 15px 15px 0;
+            padding: 10px 15px;
+            margin: 5px 0;
+            max-width: 80%;
+            align-self: flex-start;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .footer-legal {
+            font-size: 0.7rem;
+            color: #4a5568;
+            text-align: center;
+            padding: 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin-top: 80px;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(37, 99, 235, 0.1);
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="sparkle">
+
+    <!-- Auth Screen -->
+    <div id="authScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 glass-panel">
+        <h1 class="text-4xl font-bold text-blue-600 mb-2">It's Me</h1>
+        <p class="text-gray-600 mb-8 text-center">SMART WORLD ORDER کا باضابطہ، محفوظ اور انکرپٹڈ مواصلاتی پلیٹ فارم</p>
+        
+        <input type="tel" id="phoneInput" placeholder="موبائل نمبر درج کریں (مثال: 03001234567)" class="w-full p-4 mb-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 text-right">
+        
+        <button onclick="handleSupabaseLogin()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">
+            <i class="fas fa-shield-alt ml-2"></i> محفوظ لاگ ان کریں (Supabase Encrypted)
+        </button>
+        
+        <div id="loginLoading" class="loading-spinner hidden-section"></div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="mainApp" class="hidden-section pb-24">
+        <!-- Header -->
+        <header class="glass-panel sticky top-0 z-40 p-4 flex justify-between items-center shadow-sm">
+            <h1 class="text-2xl font-bold text-blue-700">It's Me</h1>
+            <div class="flex gap-4">
+                <i class="fas fa-search text-gray-600 text-xl"></i>
+                <i class="fas fa-ellipsis-v text-gray-600 text-xl"></i>
+            </div>
+        </header>
+
+        <!-- Content Areas -->
+        <main class="p-4 min-h-screen">
+            <!-- Chats Tab -->
+            <div id="tab-chats" class="tab-content">
+                <div class="glass-panel rounded-2xl p-4 mb-4 flex items-center gap-4" onclick="openChat('ڈاکٹر ایم عرفان قادر تھہیم', 'admin')">
+                    <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-2xl">👤</div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-gray-800">ڈاکٹر ایم عرفان قادر تھہیم</h3>
+                        <p class="text-sm text-gray-500" id="lastMsgPreview">السلام علیکم! پلیٹ فارم تیار ہے۔</p>
+                    </div>
+                    <span class="text-xs text-gray-400">ابھی</span>
+                </div>
+                
+                <!-- Active Chat Interface -->
+                <div id="activeChat" class="hidden-section fixed inset-0 z-50 bg-[#f0f4f8] flex flex-col">
+                    <div class="glass-panel p-4 flex items-center gap-3 shadow-sm">
+                        <button onclick="closeChat()" class="text-gray-600"><i class="fas fa-arrow-right"></i></button>
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">👤</div>
+                        <div>
+                            <h3 class="font-bold text-sm" id="chatPartnerName">نام</h3>
+                            <p class="text-xs text-green-600">آن لائن (Supabase Realtime)</p>
+                        </div>
+                        <div class="mr-auto flex gap-4 text-blue-600">
+                            <i class="fas fa-video"></i>
+                            <i class="fas fa-phone"></i>
+                        </div>
+                    </div>
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></div>
+                    <div class="glass-panel p-3 flex items-center gap-2">
+                        <i class="far fa-smile text-gray-500 text-xl"></i>
+                        <input type="text" id="msgInput" placeholder="پیغام لکھیں..." class="flex-1 bg-white rounded-full px-4 py-2 text-sm focus:outline-none text-right">
+                        <button onclick="sendSupabaseMessage()" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Updates Tab -->
+            <div id="tab-updates" class="tab-content hidden-section">
+                <h2 class="text-xl font-bold mb-4 text-gray-700">اسٹیٹس اپ ڈیٹس</h2>
+                <div class="glass-panel rounded-2xl p-4 flex items-center gap-4 mb-4">
+                    <div class="w-14 h-14 rounded-full border-2 border-blue-500 border-dashed flex items-center justify-center text-2xl">+</div>
+                    <div>
+                        <h3 class="font-bold text-gray-800">میرا اسٹیٹس</h3>
+                        <p class="text-sm text-gray-500">اپ ڈیٹ شامل کرنے کے لیے ٹیپ کریں</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- I Hub Tab -->
+            <div id="tab-ihub" class="tab-content hidden-section">
+                <h2 class="text-xl font-bold mb-4 text-green-700"><i class="fas fa-kaaba ml-2"></i>I Hub (اسلامک ڈیٹا)</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="glass-panel p-4 rounded-2xl border-r-4 border-green-500">
+                        <h3 class="font-bold text-lg mb-2">قرآن پاک</h3>
+                        <p class="text-gray-600 text-sm">"بیشک اللہ کے ساتھ کوئی معبود نہیں، وہی غالب اور حکمت والا ہے۔" (آل عمران: 62)</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border-r-4 border-blue-500">
+                        <h3 class="font-bold text-lg mb-2">حدیث نبوی ﷺ</h3>
+                        <p class="text-gray-600 text-sm">"تم میں سے بہترین وہ ہے جو قرآن سیکھے اور سکھائے۔" (بخاری)</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border-r-4 border-yellow-500">
+                        <h3 class="font-bold text-lg mb-2">اذکار و وظائف</h3>
+                        <p class="text-gray-600 text-sm">سبحان اللہ، الحمد للہ، اللہ اکبر (33 بار)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communities Tab -->
+            <div id="tab-communities" class="tab-content hidden-section">
+                <h2 class="text-xl font-bold mb-4 text-gray-700">کمیونٹیز</h2>
+                <div class="glass-panel p-4 rounded-2xl flex items-center gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-xl">🌍</div>
+                    <div>
+                        <h3 class="font-bold">SMART WORLD ORDER</h3>
+                        <p class="text-xs text-gray-500">1,240 اراکین • آفیشل گروپ</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ES Hub Tab -->
+            <div id="tab-eshub" class="tab-content hidden-section">
+                <h2 class="text-xl font-bold mb-4 text-red-600"><i class="fas fa-broadcast-tower ml-2"></i>ES Hub</h2>
+                <div class="glass-panel p-4 rounded-2xl mb-4">
+                    <h3 class="font-bold mb-2">E-S News Channel</h3>
+                    <div class="aspect-video bg-gray-200 rounded-xl flex items-center justify-center mb-2">
+                        <i class="fab fa-youtube text-red-600 text-4xl"></i>
+                        <span class="mr-2 text-gray-600">YouTube Integration Active</span>
+                    </div>
+                    <p class="text-sm text-gray-600">پیشہ ورانہ نیوز چینل کے ساتھ مکمل انٹیگریشن۔</p>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl">
+                    <h3 class="font-bold mb-2">E.S Interpretation</h3>
+                    <ul class="text-sm text-gray-600 space-y-2 list-disc list-inside">
+                        <li>سیاسی و سماجی تجزیہ</li>
+                        <li>طبی و صحت کے امور</li>
+                        <li>حقیقی اسلامی نظریات کی تحقیق</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="tab-settings" class="tab-content hidden-section">
+                <h2 class="text-xl font-bold mb-4 text-gray-700">سیٹنگز</h2>
+                <div class="glass-panel rounded-2xl overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-3xl">👤</div>
+                        <div>
+                            <h3 class="font-bold text-lg">یوزر آئی ڈی: #SWO-SECURE</h3>
+                            <p class="text-sm text-gray-500" id="userPhoneDisplay">0300XXXXXXX</p>
+                        </div>
+                    </div>
+                    <button class="w-full p-4 text-right flex justify-between items-center hover:bg-white/50 border-b border-gray-200">
+                        <span>پروفائل مینجمنٹ</span> <i class="fas fa-chevron-left text-gray-400"></i>
+                    </button>
+                    <button class="w-full p-4 text-right flex justify-between items-center hover:bg-white/50 border-b border-gray-200">
+                        <span>ملٹی لینگوئل وائس ٹائپنگ</span> <i class="fas fa-chevron-left text-gray-400"></i>
+                    </button>
+                    <button class="w-full p-4 text-right flex justify-between items-center hover:bg-white/50 border-b border-gray-200">
+                        <span>تھیم اور بیک گراؤنڈ (Glassy Gradient)</span> <i class="fas fa-chevron-left text-gray-400"></i>
+                    </button>
+                    <button onclick="openAdminPanel()" class="w-full p-4 text-right flex justify-between items-center hover:bg-red-50 text-red-600 font-bold border-t-2 border-red-100 mt-2">
+                        <span><i class="fas fa-lock ml-2"></i>ایڈمن پینل (Owner Only)</span> <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 glass-panel border-t border-white/50 z-40">
+            <div class="flex justify-around items-center h-16 text-xs font-medium text-gray-500">
+                <button onclick="switchTab('chats')" class="nav-item active flex flex-col items-center gap-1 w-full h-full justify-center">
+                    <i class="fas fa-comment-dots text-xl"></i> Chats
+                </button>
+                <button onclick="switchTab('updates')" class="nav-item flex flex-col items-center gap-1 w-full h-full justify-center">
+                    <i class="fas fa-circle-notch text-xl"></i> Updates
+                </button>
+                <button onclick="switchTab('ihub')" class="nav-item flex flex-col items-center gap-1 w-full h-full justify-center">
+                    <i class="fas fa-kaaba text-xl"></i> I Hub
+                </button>
+                <button onclick="switchTab('communities')" class="nav-item flex flex-col items-center gap-1 w-full h-full justify-center">
+                    <i class="fas fa-users text-xl"></i> Communities
+                </button>
+                <button onclick="switchTab('eshub')" class="nav-item flex flex-col items-center gap-1 w-full h-full justify-center">
+                    <i class="fas fa-globe text-xl"></i> ES Hub
+                </button>
+                <button onclick="switchTab('settings')" class="nav-item flex flex-col items-center gap-1 w-full h-full justify-center">
+                    <i class="fas fa-cog text-xl"></i> Settings
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mandatory Footer -->
+        <footer class="footer-legal glass-panel">
+            <p class="font-bold mb-1">Secrecy policy# | Warnings# | Disclaimer#</p>
+            <p>Copyright © 2026 SMART WORLD ORDER</p>
+            <p class="font-semibold text-blue-700 mt-1">Vision by Dr M Irfan Qadir Thaheem</p>
+            <p class="mt-2">WhatsApp: 0300_4737757 | Email: dr.mirfan5577@gmail.com</p>
+            <p>Web: <a href="https://drmirfan5577-ops.github.io/SmartWorldOrder" class="text-blue-600 underline">drmirfan5577-ops.github.io/SmartWorldOrder</a></p>
+        </footer>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="hidden-section fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 relative">
+            <button onclick="closeAdminPanel()" class="absolute top-4 left-4 text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            
+            <div id="adminLogin">
+                <h2 class="text-2xl font-bold text-center mb-4 text-red-600"><i class="fas fa-shield-alt ml-2"></i>ایڈمن پینل</h2>
+                <p class="text-sm text-gray-600 text-center mb-4">یہ سیکشن صرف مالک (Owner) کے لیے محفوظ ہے۔</p>
+                <input type="password" id="adminPass" placeholder="پاسورڈ درج کریں" class="w-full p-3 mb-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-center">
+                <button onclick="verifyAdmin()" class="w-full bg-red-600 text-white p-3 rounded-xl font-bold shadow-lg hover:bg-red-700 transition">لاک کھولیں</button>
+                <p id="adminError" class="text-red-500 text-sm text-center mt-2 hidden-section">غلط پاسورڈ! رسائی مسترد۔</p>
+            </div>
+
+            <div id="adminDashboard" class="hidden-section">
+                <h2 class="text-xl font-bold text-center mb-4 text-green-600">خوش آمدید، ایڈمن</h2>
+                <div class="space-y-3">
+                    <button class="w-full bg-blue-100 text-blue-700 p-3 rounded-xl font-bold text-right flex justify-between items-center">
+                        <span>یوزرز کا ڈیٹا مینیج کریں (Supabase)</span> <i class="fas fa-users-cog"></i>
+                    </button>
+                    <button class="w-full bg-green-100 text-green-700 p-3 rounded-xl font-bold text-right flex justify-between items-center">
+                        <span>I Hub / ES Hub مواد اپ ڈیٹ کریں</span> <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="w-full bg-purple-100 text-purple-700 p-3 rounded-xl font-bold text-right flex justify-between items-center">
+                        <span>سرور سٹیٹس اور بیک اپ (24/7)</span> <i class="fas fa-server"></i>
+                    </button>
+                    <button class="w-full bg-gray-100 text-gray-700 p-3 rounded-xl font-bold text-right flex justify-between items-center">
+                        <span>نئے فیچرز شامل کریں (+)</span> <i class="fas fa-plus-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚠️ اہم: یہاں اپنی Supabase کی تفصیلات درج کریں
+        // ==========================================
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // مثال: 'https://xyz.supabase.co'
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // مثال: 'eyJhbG...'
+        
+        // Supabase Client Initialization
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let currentUserPhone = '';
+        let currentChatPartner = '';
+
+        // Auth Logic
+        async function handleSupabaseLogin() {
+            const phone = document.getElementById('phoneInput').value || '03001234567';
+            currentUserPhone = phone;
+            document.getElementById('userPhoneDisplay').innerText = phone;
+            document.getElementById('loginLoading').classList.remove('hidden-section');
+            
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: phone + '@itsme.app',
+                password: 'securepassword123'
+            });
+
+            if (error) {
+                await supabase.auth.signUp({
+                    email: phone + '@itsme.app',
+                    password: 'securepassword123',
+                    options: { data: { phone_number: phone } }
+                });
+            }
+
+            document.getElementById('loginLoading').classList.add('hidden-section');
+            document.getElementById('authScreen').classList.add('hidden-section');
+            document.getElementById('mainApp').classList.remove('hidden-section');
+            loadMessages();
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden-section'));
+            document.getElementById('tab-' + tabName).classList.remove('hidden-section');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // Chat Logic
+        function openChat(name, partnerId) {
+            currentChatPartner = partnerId;
+            document.getElementById('chatPartnerName').innerText = name;
+            document.getElementById('activeChat').classList.remove('hidden-section');
+            loadMessages();
+        }
+
+        function closeChat() {
+            document.getElementById('activeChat').classList.add('hidden-section');
+        }
+
+        async function sendSupabaseMessage() {
+            const input = document.getElementById('msgInput');
+            if(input.value.trim() === '') return;
+            
+            const { error } = await supabase.from('messages').insert([
+                { sender_id: '00000000-0000-0000-0000-000000000000', receiver_phone: currentChatPartner, content: input.value }
+            ]);
+
+            if(!error) {
+                input.value = '';
+                loadMessages();
+            }
+        }
+
+        async function loadMessages() {
+            const chatBox = document.getElementById('chatMessages');
+            chatBox.innerHTML = '<p class="text-center text-gray-400 text-sm">پیغامات لوڈ ہو رہے ہیں...</p>';
+            
+            const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+            
+            chatBox.innerHTML = '';
+            if (data) {
+                data.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = msg.receiver_phone === 'admin' ? 'chat-bubble-sent' : 'chat-bubble-received';
+                    div.innerText = msg.content;
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            supabase.channel('custom-all-channel')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    const div = document.createElement('div');
+                    div.className = payload.new.receiver_phone === 'admin' ? 'chat-bubble-sent' : 'chat-bubble-received';
+                    div.innerText = payload.new.content;
+                    chatBox.appendChild(div);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                })
+                .subscribe();
+        }
+
+        // Admin Panel Logic
+        function openAdminPanel() {
+            document.getElementById('adminModal').classList.remove('hidden-section');
+            document.getElementById('adminLogin').classList.remove('hidden-section');
+            document.getElementById('adminDashboard').classList.add('hidden-section');
+            document.getElementById('adminPass').value = '';
+            document.getElementById('adminError').classList.add('hidden-section');
+        }
+        function closeAdminPanel() {
+            document.getElementById('adminModal').classList.add('hidden-section');
+        }
+        function verifyAdmin() {
+            if(document.getElementById('adminPass').value === 'Daood5577') {
+                document.getElementById('adminLogin').classList.add('hidden-section');
+                document.getElementById('adminDashboard').classList.remove('hidden-section');
+            } else {
+                document.getElementById('adminError').classList.remove('hidden-section');
+            }
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
